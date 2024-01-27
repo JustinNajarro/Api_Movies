@@ -12,4 +12,6 @@ import java.util.List;
 public interface RepositoryMovie extends JpaRepository<Movie, Long> {
     List<Movie> findByCategory(Category category);
     Movie findByTitle(@Param(("title")) String title);
+    Movie findByTitleAndIdNot(String title, Long id);
+
 }
