@@ -5,6 +5,8 @@ import njarro.villagaray.movies.model.Movie;
 import njarro.villagaray.movies.repository.RepositoryMovie;
 import njarro.villagaray.movies.util.MovieUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,10 @@ public class ServiceMovie {
     @Autowired
     RepositoryMovie repositoryMovie;
 
+    @Autowired
+    MovieCache movieCache;
+
+    @Cacheable(value = "movies", key = "'all'", unless = "#result == null || #result.isEmpty()")
     public Collection<Movie> findAll() {
         try {
             return (Collection<Movie>) repositoryMovie.findAll();
@@ -29,6 +35,7 @@ public class ServiceMovie {
         }
     }
 
+    @CacheEvict(value = {"movies", "movie"}, allEntries = true)
     public ResponseEntity<String> saveMovie(Movie movie) {
         try {
             if (!validateMovieData(movie)) {
@@ -50,9 +57,9 @@ public class ServiceMovie {
 
     public ResponseEntity<?> findById(Long movieId){
         try{
-            Optional<Movie> movie = repositoryMovie.findById(movieId);
-            if(movie.isPresent()){
-                return new ResponseEntity<>(movie,HttpStatus.OK);
+            Movie movie = movieCache.getById(movieId);
+            if(movie != null){
+                return new ResponseEntity<>(Optional.of(movie),HttpStatus.OK);
             }
             else{
                 return MovieUtils.getResponseEntity("No existe la pelicula con id: "+movieId , HttpStatus.BAD_REQUEST);
@@ -64,6 +71,7 @@ public class ServiceMovie {
     }
 
 
+    @CacheEvict(value = {"movies", "movie"}, allEntries = true)
     public ResponseEntity<?> updateMovie(@PathVariable Long movieId, @RequestBody Movie movieUpdate){
         try{
             Optional<Movie> movie = repositoryMovie.findById(movieId);
@@ -92,6 +100,7 @@ public class ServiceMovie {
         return MovieUtils.getResponseEntity(MovieConstants.AN_ERROR_OCCURRED, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @CacheEvict(value = {"movies", "movie"}, allEntries = true)
     public ResponseEntity<?> deleteMovie(@PathVariable Long movieId){
         try{
             Optional<Movie> movie = repositoryMovie.findById(movieId);
