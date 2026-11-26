@@ -7,14 +7,14 @@ import njarro.villagaray.movies.util.MovieUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Optional;
 
 @Service
@@ -25,13 +25,14 @@ public class ServiceMovie {
     @Autowired
     MovieCache movieCache;
 
-    @Cacheable(value = "movies", key = "'all'", unless = "#result == null || #result.isEmpty()")
-    public Collection<Movie> findAll() {
+    @Cacheable(value = "movies", key = "#pageable.pageNumber + ':' + #pageable.pageSize",
+            unless = "#result == null || #result.isEmpty()")
+    public Page<Movie> findAll(Pageable pageable) {
         try {
-            return (Collection<Movie>) repositoryMovie.findAll();
+            return repositoryMovie.findAll(pageable);
         } catch (Exception e) {
             e.printStackTrace();
-            return Collections.emptyList();
+            return Page.empty(pageable);
         }
     }
 

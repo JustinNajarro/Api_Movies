@@ -9,7 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collection;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/movies")
@@ -18,9 +21,15 @@ public class ControllerMovie {
     private ServiceMovie serviceMovie;
 
     @GetMapping("/")
-    public ResponseEntity<?> getAllMovies(){
+    public ResponseEntity<?> getAllMovies(@RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "10") int size){
         try {
-            Collection<Movie> itemsMovies =  serviceMovie.findAll();
+            if (page < 0 || size < 1) {
+                return MovieUtils.getResponseEntity(MovieConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
+            }
+            // Orden estable por id y tamaño máximo de página para evitar consultas enormes
+            Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("id"));
+            Page<Movie> itemsMovies = serviceMovie.findAll(pageable);
             return new ResponseEntity<>(itemsMovies, HttpStatus.OK);
         }catch (Exception e){
             e.printStackTrace();
